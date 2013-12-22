@@ -1,19 +1,9 @@
 var net = require('net'),
-    irc = {}, config;
+    irc = {},
+    config = require('./config');
 
-config = {
-    user: {
-        nick: 'Bratan',
-        user: '',
-        real: '',
-        pass: ''
-    },
-    server: {
-        addr: 'irc.efnet.net',
-        port: 6667
-    },
-    chans: ['#test']
-}
+config['user']['nick'] = 'Bratan5';
+config['user']['user'] = 'Bratan5';
 
 irc.socket = new net.Socket();
 
@@ -41,13 +31,9 @@ irc.socket.on('connect', function()
     {
         irc.raw('NICK ' + config.user.nick);
         irc.raw('USER ' + config.user.user + ' 8 * :' + config.user.real);
-        setTimeout(function()
-        {
-            for (var i = 0; i < config.chans.length; i++)
-            {
-                irc.join(config.chans[i]);
-            }
-        }, 2000);
+        config.chans.forEach(function( value, index ) {
+            irc.join( value )
+        });
     }, 1000);
 });
 
@@ -78,6 +64,7 @@ irc.on = function(data, callback)
 {
     irc.listeners.push([data, callback, false])
 }
+
 irc.on_once = function(data, callback)
 {
     irc.listeners.push([data, callback, true]);
@@ -85,8 +72,16 @@ irc.on_once = function(data, callback)
 
 irc.raw = function(data)
 {
-    irc.socket.write(data + '\n', 'ascii', function()
+    irc.socket.write(data + '\r\n', 'ascii', function()
     {
         console.log('SENT -', data);
     });
 }
+
+irc.join = function (chan, callback) {
+    if (callback !== undefined) {
+        irc.on_once(new RegExp('^:' + irc.info.nick + '![^@]+@[^ ]+ JOIN :' + chan), callback);
+    }
+    //irc.info.names[chan] = {};
+    irc.raw('JOIN ' + chan);
+};
