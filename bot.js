@@ -3,8 +3,8 @@ var net = require('net'),
     config = require('./config'),
     messages = {};
 
-config['user']['nick'] = 'Bratan';
-config['user']['user'] = 'Bratan';
+config['user']['nick'] = 'Fedor';
+config['user']['user'] = 'Fedor';
 
 irc.socket = new net.Socket();
 
