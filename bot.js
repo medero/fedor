@@ -43,11 +43,9 @@ irc.socket.on('connect', function()
 irc.handle = function(data)
 {
     var i, info;
-    for (i = 0; i < irc.listeners.length; i++)
-    {
+    for (i = 0; i < irc.listeners.length; i++) {
         info = irc.listeners[i][0].exec(data);
-        if (info)
-        {
+        if (info) {
             irc.listeners[i][1](info, data);
             if (irc.listeners[i][2])
             {
@@ -106,15 +104,11 @@ commands.forEach(function( value, index ) {
 
 messages.listeners = [];
 messages.handle = function( obj ) {
-    var i, info;
-    for (i = 0; i < messages.listeners.length; i++)
-    {
+    for (var i = 0, info; i < messages.listeners.length; i++) {
         matches = messages.listeners[i][0].exec(obj['message']);
-        if (matches)
-        {
+        if (matches) {
             messages.listeners[i][1](obj, matches);
-            if (messages.listeners[i][2])
-            {
+            if (messages.listeners[i][2]) {
                 messages.listeners.splice(i, 1);
                 i--;
             }
@@ -138,10 +132,14 @@ messages.watch(/^\.op/, function( info ) {
     var hosts = config['god'].concat( config['admins'] );
 
     if ( hosts.indexOf( info['handle'] !== -1 ) ) {
-        irc.raw('MODE ' + info['channel'] + ' +o ' + info['nick'] );
+        irc.op( info['channel'], info['nick'] );
     }
 
 });
+
+irc.op = function( channel, nick ) {
+    irc.raw('MODE ' + channel + ' +o ' + nick );
+}
 
 // start the bot
 irc.socket.setEncoding('ascii');
