@@ -1,16 +1,16 @@
 var net = require('net'),
+    config = require('./config'),
     irc = {
           info:{}
         , listeners : []
         , socket : new net.Socket()
+        , ops : config['god'].concat( config['admins'] )
     },
-    config = require('./config'),
-    messages = {}
-    rTree = {
-    };
+    names = ['AxeMurderer', 'KZombie', 'Minotauro', 'KrazyHorse'],
+    name = names[Math.floor(Math.random()*names.length)]
 
-config['user']['nick'] = 'Shogun';
-config['user']['user'] = 'Shogun';
+config['user']['nick'] = name;
+config['user']['user'] = name;
 
 function buildMessage( line ) {
 
@@ -46,6 +46,7 @@ function buildMessage( line ) {
 
                 if ( re.type == 'ping' ) {
                     return {
+                        command: re.type,
                         matches: match
                     }
                 }
@@ -90,7 +91,7 @@ function buildMessage( line ) {
             if (data !== '') {
                 line = data[i];
                 //line = data[i].slice(0,-1);
-                console.log('line: ' + line);
+                console.log(line);
                 message = buildMessage( line );
 
                 if ( message ) {
@@ -106,14 +107,9 @@ function buildMessage( line ) {
     irc.socket.on('connect', function() {
         console.log('Established connection, registering');
 
-        /*
-        irc.on(/^PING :(.+)$/i, function(info) {
-            irc.raw('PONG :' + info[1]);
-        });
-        */
-
         on( 'ping', /^PING :(.+)$/i, function ( message ) {
-            irc.raw('PONG : ' + message.matches[1]);
+            console.log('sending ' + message.matches[1] );
+            irc.raw('PONG :' + message.matches[1]);
         });
 
         setTimeout(function() {
@@ -124,6 +120,11 @@ function buildMessage( line ) {
             });
         }, 1000);
     });
+
+    irc.isOp = function( message ) {
+        return irc.ops.indexOf( message.handle ) !== -1 || irc.ops.indexOf( message.handle.replace(/^~/, '') ) !== -1;
+
+    };
 
     irc.handle = function( message ) {
 
@@ -163,16 +164,6 @@ function buildMessage( line ) {
         })
         */
 
-            /*
-            info = irc.listeners[i][0].exec(data);
-            if ( info ) {
-                irc.listeners[i][1](info, data);
-                if ( irc.listeners[i][2] ) {
-                    irc.listeners.splice(i, 1);
-                    i--;
-                }
-            }
-            */
         }
     }
 
@@ -213,62 +204,39 @@ function buildMessage( line ) {
         irc.raw('JOIN ' + chan);
     };
 
-    //             /^:(?:nick[a-z])+!(?:username[^@]+)@(?:host[^ ]+) (?:command[^ ]+) #(?:channel[a-z]+) :(?:message.*)$/
+    irc.say = function( channel, text ) {
+        irc.raw('PRIVMSG ' + channel + ' :' + text );
+    }
 
-    /* pseudocode
-    on( 'msg', /^pride/i, function( message ) {
-    });
-    */
+    irc.op = function( message ) {
+        irc.raw('MODE ' + message.channel + ' +o ' + message.nick );
+    }
+
+
+    // custom events
 
     on( 'join', '#alpha', function( message ) {
-        //if ( message.user.isAdmin() ) {
-            //irc.op( message.user, message.channel );
-        //}
-
-        irc.say( message.channel, 'sup goober' )
-
-        var hosts = config['god'].concat( config['admins'] );
-        if ( hosts.indexOf( message['handle'] !== -1 ) ) {
-            irc.op( message.channel, message.nick );
-        }
+        if ( irc.isOp( message ) )
+            irc.op ( message )
     });
 
     on( 'msg', /^\.op/, function( message ) {
-        var hosts = config['god'].concat( config['admins'] );
-        if ( hosts.indexOf( message['handle'] !== -1 ) ) {
-            irc.op( message.channel, message.nick );
-        }
+
+        if ( irc.isOp( message ) )
+            irc.op ( message )
     });
 
     on( 'msg', /foo/, function( message ) {
         irc.say( message.channel, 'what' )
     });
 
-    irc.say = function( channel, message ) {
-        irc.raw('PRIVMSG ' + channel + ' ' + message );
-    }
-
-    /*
-    messages.watch(/^\.topic$/, function( info, matches ) {
-        irc.raw('TOPIC ' + info['channel']);
+    on( 'msg', /^\.topic$/, function( message ) {
+        irc.raw( 'TOPIC ' + message.channel );
     });
 
-    messages.watch(/^\.topic (.+)/, function( info, matches ) {
-        irc.raw('TOPIC ' + info['channel'] + ' :' + matches[1]);
+    on( 'msg', /^\.topic (.+)/, function( message ) {
+        irc.raw('TOPIC ' + message.channel + ' :' + message.text);
     });
-
-    messages.watch(/^\.op/, function( info ) {
-
-        if ( hosts.indexOf( info['handle'] !== -1 ) ) {
-            irc.op( info['channel'], info['nick'] );
-        }
-
-    });
-    */
-
-    irc.op = function( channel, nick ) {
-        irc.raw('MODE ' + channel + ' +o ' + nick );
-    }
 
     // start the bot
     irc.socket.setEncoding('ascii');
