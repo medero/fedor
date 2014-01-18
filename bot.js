@@ -7,7 +7,8 @@ var net = require('net'),
         , ops : config['god'].concat( config['admins'] )
     },
     names = ['AxeMurderer', 'KZombie', 'Minotauro', 'KrazyHorse'],
-    name = names[Math.floor(Math.random()*names.length)]
+    name = names[Math.floor(Math.random()*names.length)],
+    db = require('vendor/db/db')
 
 config['user']['nick'] = name;
 config['user']['user'] = name;
@@ -134,8 +135,11 @@ function buildMessage( line ) {
 
             if ( message.command == item.command ) {
                 switch ( message.command ) {
+
                     case 'privmsg':
-                        if ( message.text.match( item.what ) ) {
+                        var match = message.text.match( item.what )
+                        if ( match ) {
+                            message['matches'] = match;
                             item.callback.call( this, message )
                             if ( item.once )
                                 irc.listeners.splice(i, 1);
@@ -235,7 +239,14 @@ function buildMessage( line ) {
     });
 
     on( 'msg', /^\.topic (.+)/, function( message ) {
-        irc.raw('TOPIC ' + message.channel + ' :' + message.text);
+        irc.raw('TOPIC ' + message.channel + ' :' + message.matches[1] );
+    });
+
+    on( 'msg', /^(?:\.note\s*|`)([\w]+)/, function( message ) {
+        db.model('Note').findOne({ key: message.matches[1] }, function( err, response ) { 
+            if ( !err )
+                irc.say( message.channel, response.value );
+        })
     });
 
     // start the bot
