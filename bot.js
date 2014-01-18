@@ -1,32 +1,32 @@
 var net = require('net'),
-    irc = {info:{}},
+    irc = {
+          info:{}
+        , listeners : []
+        , socket : new net.Socket()
+    },
     config = require('./config'),
-    messages = {};
+    messages = {}
+    regexTree = {
+    }
+    ;
 
-config['user']['nick'] = 'Fedor';
-config['user']['user'] = 'Fedor';
+config['user']['nick'] = 'Fedor2';
+config['user']['user'] = 'Fedor2';
 
-irc.socket = new net.Socket();
-
-irc.socket.on('data', function(data)
-{
+irc.socket.on('data', function(data) {
     data = data.split('\n');
-    for (var i = 0; i < data.length; i++)
-    {
+    for (var i = 0; i < data.length; i++) {
         console.log('RECV -', data[i]);
-        if (data !== '')
-        {
+        if (data !== '') {
             irc.handle(data[i].slice(0, -1));
         }
     }
 });
 
-irc.socket.on('connect', function()
-{
-    console.log('Established connection, registering and shit...');
+irc.socket.on('connect', function() {
+    console.log('Established connection, registering');
 
-    irc.on(/^PING :(.+)$/i, function(info)
-    {
+    irc.on(/^PING :(.+)$/i, function(info) {
         irc.raw('PONG :' + info[1]);
     });
 
@@ -39,16 +39,12 @@ irc.socket.on('connect', function()
     }, 1000);
 });
 
-//handles incoming messages
-irc.handle = function(data)
-{
-    var i, info;
-    for (i = 0; i < irc.listeners.length; i++) {
+irc.handle = function(data) {
+    for (var i = 0, info; i < irc.listeners.length; i++) {
         info = irc.listeners[i][0].exec(data);
-        if (info) {
+        if ( info ) {
             irc.listeners[i][1](info, data);
-            if (irc.listeners[i][2])
-            {
+            if ( irc.listeners[i][2] ) {
                 irc.listeners.splice(i, 1);
                 i--;
             }
@@ -56,21 +52,16 @@ irc.handle = function(data)
     }
 }
 
-irc.listeners = [];
-irc.on = function(regex, callback)
-{
+irc.on = function(regex, callback) {
     irc.listeners.push([regex, callback, false])
 }
 
-irc.on_once = function(regex, callback)
-{
+irc.on_once = function(regex, callback) {
     irc.listeners.push([regex, callback, true]);
 }
 
-irc.raw = function(data)
-{
-    irc.socket.write(data + '\r\n', 'ascii', function()
-    {
+irc.raw = function(data) {
+    irc.socket.write(data + '\r\n', 'ascii', function() {
         console.log('SENT -', data);
     });
 }
