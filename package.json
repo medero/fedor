@@ -1,0 +1,12 @@
+{
+ "name": "Fedor",
+ "version": "0.0.1",
+ "description": "irc bot in node.js",
+ "private": true,
+ "scripts": {
+  "start": "node app"
+ },
+ "dependencies": {
+  "mongoose": "*"
+ }
+}
