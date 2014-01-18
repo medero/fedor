@@ -9,8 +9,8 @@ var net = require('net'),
     rTree = {
     };
 
-config['user']['nick'] = 'Fedor2';
-config['user']['user'] = 'Fedor2';
+config['user']['nick'] = 'Shogun';
+config['user']['user'] = 'Shogun';
 
 function buildMessage( line ) {
 
@@ -56,7 +56,7 @@ function buildMessage( line ) {
                     host: match[3],
                     handle: match[2]+'@'+match[3],
                     command: re.type,
-                    channel: match[4],
+                    channel: '#' + match[4],
 
                     // optional
                     text: '',
@@ -134,8 +134,8 @@ function buildMessage( line ) {
             if ( message.command == item.command ) {
                 switch ( message.command ) {
                     case 'privmsg':
-                        if ( message.match( item.what ) ) {
-                            item.callback.call( message )
+                        if ( message.text.match( item.what ) ) {
+                            item.callback.call( this, message )
                             if ( item.once )
                                 irc.listeners.splice(i, 1);
                         }
@@ -143,10 +143,13 @@ function buildMessage( line ) {
 
                     case 'join':
                         if ( message.channel == item.what ) {
-                            item.callback.call( message )
+                            item.callback.call( this, message )
                             if ( item.once )
                                 irc.listeners.splice(i, 1);
                         }
+                    break;
+                    case 'ping':
+                            item.callback.call( this, message )
                     break;
                 }
             }
@@ -174,7 +177,9 @@ function buildMessage( line ) {
     }
 
     function on( command, what, callback ) {
+
         if ( command == 'msg' ) command = 'privmsg';
+
         irc.listeners.push({
             command: command,
             what: what,
@@ -221,12 +226,17 @@ function buildMessage( line ) {
         //}
 
         irc.say( message.channel, 'sup goober' )
+
+        var hosts = config['god'].concat( config['admins'] );
+        if ( hosts.indexOf( message['handle'] !== -1 ) ) {
+            irc.op( message.channel, message.nick );
+        }
     });
 
     on( 'msg', /^\.op/, function( message ) {
         var hosts = config['god'].concat( config['admins'] );
         if ( hosts.indexOf( message['handle'] !== -1 ) ) {
-            irc.op( '#' + message.channel, message.nick );
+            irc.op( message.channel, message.nick );
         }
     });
 
