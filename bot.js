@@ -8,7 +8,13 @@ var net = require('net'),
     },
     names = ['AxeMurderer', 'KZombie', 'Minotauro', 'KrazyHorse'],
     name = names[Math.floor(Math.random()*names.length)],
-    db = require('vendor/db/db')
+    name = "Doflmingo",
+    db = require('vendor/db/db'), 
+    Youtube = require('./vendor/youtube/youtube'),
+    youtube = new Youtube,
+    Utils = require("./vendor/utils/utils"),
+    utils = new Utils(), 
+    linkRx = /(https?:[;\/?\\@&=+$,\[\]A-Za-z0-9\-_\.\!\~\*\'\(\)%][\;\/\?\:\@\&\=\+\$\,\[\]A-Za-z0-9\-_\.\!\~\*\'\(\)%#]*|[KZ]:\\*.*\w+)/g
 
 config['user']['nick'] = name;
 config['user']['user'] = name;
@@ -230,10 +236,6 @@ function buildMessage( line ) {
             irc.op ( message )
     });
 
-    on( 'msg', /foo/, function( message ) {
-        irc.say( message.channel, 'what' )
-    });
-
     on( 'msg', /^\.topic$/, function( message ) {
         irc.raw( 'TOPIC ' + message.channel );
     });
@@ -244,10 +246,54 @@ function buildMessage( line ) {
 
     on( 'msg', /^(?:\.note\s*|`)([\w]+)/, function( message ) {
         db.model('Note').findOne({ key: message.matches[1] }, function( err, response ) { 
-            if ( !err )
+            if ( !err && response )
                 irc.say( message.channel, response.value );
+            else
+                irc.say( message.channel, 'could not find key, sorry' )
         })
     });
+
+    on( 'msg', /^(?:\+|\.addnote|\.setnote) ([\w]+) (.*)/, function(message) {
+        var note = new db.Note({
+            key: message.matches[1],
+            value : message.matches[2]
+        })
+
+        note.save(function(err, arr){
+            console.log(err)
+
+            if ( arr ) {
+                irc.say( message.channel, 'note saved.' )
+            }
+        })
+    });
+
+    on( 'msg', linkRx, function( message ) {
+      utils.title( message.matches[0], function(results ) {
+	  //if ( results.length ) irc.say( message.channel, '\u0002' + results )
+	  if ( results.length ) irc.say( message.channel, results )
+
+	  //message.say( results.length )
+	  //message.say ( results )
+	  for ( var i = results.length; i--; ) {
+	      var code = results[i].charCodeAt();
+	      if ( code > 255 ) {
+		  //console.log('found')
+		  //console.log( code )
+		  //console.log( results[i].charCodeAt() )
+	      }
+	  }
+
+      })
+    });
+
+    on( 'msg', /^\.y(?:o?u?)?t?(?:u?b?e)? ([^@]+)(?:\s*@\s*([-\[\]|_\w]+))?/, function(message) {
+        youtube.search( message.matches[1], function(results) {
+            if ( !results || results.length === 0  ) irc.say( message.channel, message.username + ": Sorry, no results for '" + message.matches[1] + "'")
+            else irc.say( message.channel, message.username + ": " + results[0].title + " - " + results[0].player['default'])
+        })
+    })
+
 
     // start the bot
     irc.socket.setEncoding('ascii');

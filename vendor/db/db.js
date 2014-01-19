@@ -13,7 +13,10 @@ var schema = new mongoose.Schema({
     key: { type: String, index: true }
 })
 
-mongoose.model('Note', schema );
+db.schema = schema;
+
+var Note = mongoose.model('Note', schema );
+
 /*
 
 var Note = mongoose.model('Note', {
@@ -28,4 +31,5 @@ var Note = mongoose.model('Note', {
 });
 */
 
+db.Note = Note;
 module.exports = db;
