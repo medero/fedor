@@ -5,91 +5,27 @@ var net = require('net'),
         , listeners : []
         , socket : new net.Socket()
         , ops : config['god'].concat( config['admins'] )
+        , god : config['god']
+        , modules : {}
     },
     names = ['AxeMurderer', 'KZombie', 'Minotauro', 'KrazyHorse'],
     name = names[Math.floor(Math.random()*names.length)],
     name = "Doflmingo",
     db = require('vendor/db/db'), 
     Youtube = require('./vendor/youtube/youtube'),
-    youtube = new Youtube,
     Utils = require("./vendor/utils/utils"),
-    utils = new Utils(), 
-    linkRx = /(https?:[;\/?\\@&=+$,\[\]A-Za-z0-9\-_\.\!\~\*\'\(\)%][\;\/\?\:\@\&\=\+\$\,\[\]A-Za-z0-9\-_\.\!\~\*\'\(\)%#]*|[KZ]:\\*.*\w+)/g
+    Parser = require('./vendor/parser/parser')
+
+irc.modules.youtube = new Youtube;
+irc.modules.utils = new Utils;
+irc.modules.parser = new Parser;
 
 config['user']['nick'] = name;
 config['user']['user'] = name;
 
-function buildMessage( line ) {
-
-    var baseMatch = '^:([_a-zA-Z]+)!([^@]+)@([^ ]+)',
-        regex = [
-            { 
-                type: 'join',
-                pattern: baseMatch + ' JOIN :#([a-z]+)' 
-            },
-            { 
-                type: 'part',
-                pattern: baseMatch + ' PART #([a-z]+)' 
-            },
-            { 
-                type: 'privmsg', 
-                pattern: baseMatch + ' PRIVMSG #([a-z]+) :(.*)' 
-            },
-            { 
-                type: 'kick', 
-                pattern: baseMatch + ' KICK #([a-z]+) ([a-z]+) :(.*)' 
-            },
-            {
-                type: 'ping',
-                pattern : /^PING :(.+)$/i
-            }
-        ];
-
-        for ( var i = regex.length; i--; ) {
-
-            var re = regex[i], match = line.match ( re.pattern );
-
-            if ( match ) {
-
-                if ( re.type == 'ping' ) {
-                    return {
-                        command: re.type,
-                        matches: match
-                    }
-                }
-
-                var message = {
-                    nick: match[1],
-                    username: match[2],
-                    host: match[3],
-                    handle: match[2]+'@'+match[3],
-                    command: re.type,
-                    channel: '#' + match[4],
-
-                    // optional
-                    text: '',
-                    kickedUser: ''
-                }
-
-                switch ( re.type ) {
-                    case 'kick':
-                        message['kickedUser'] = match[5]
-                        message['text'] = match[6]
-                    break;
-
-                    case 'privmsg':
-                        message['text'] = match[5]
-                    break;
-                }
-
-                return message;
-            }
-        };
-
-        return false;
-};
-
 (function() {
+
+    var DEBUG = false;
 
     irc.socket.on('data', function(data) {
         data = data.split(/\r\n/);
@@ -98,12 +34,13 @@ function buildMessage( line ) {
             if (data !== '') {
                 line = data[i];
                 //line = data[i].slice(0,-1);
-                console.log(line);
-                message = buildMessage( line );
+
+                if ( DEBUG ) console.log(line);
+                message = irc.modules.parser.buildMessage( line );
 
                 if ( message ) {
                     irc.handle( message )
-                    console.log( message );
+                    if ( DEBUG ) console.log( message );
                 }
 
                 //irc.handle(data[i].slice(0, -1));
@@ -130,8 +67,11 @@ function buildMessage( line ) {
 
     irc.isOp = function( message ) {
         return irc.ops.indexOf( message.handle ) !== -1 || irc.ops.indexOf( message.handle.replace(/^~/, '') ) !== -1;
-
     };
+
+    irc.isGod = function( message ) {
+        return irc.god.indexOf( message.handle ) !== -1 || irc.god.indexOf( message.handle.replace(/^~/, '') ) !== -1;
+    }
 
     irc.handle = function( message ) {
 
@@ -268,8 +208,8 @@ function buildMessage( line ) {
         })
     });
 
-    on( 'msg', linkRx, function( message ) {
-      utils.title( message.matches[0], function(results ) {
+    on( 'msg', irc.modules.parser.linkRx, function( message ) {
+      irc.modules.utils.title( message.matches[0], function(results ) {
 	  //if ( results.length ) irc.say( message.channel, '\u0002' + results )
 	  if ( results.length ) irc.say( message.channel, results )
 
@@ -288,12 +228,19 @@ function buildMessage( line ) {
     });
 
     on( 'msg', /^\.y(?:o?u?)?t?(?:u?b?e)? ([^@]+)(?:\s*@\s*([-\[\]|_\w]+))?/, function(message) {
-        youtube.search( message.matches[1], function(results) {
+        irc.modules.youtube.search( message.matches[1], function(results) {
             if ( !results || results.length === 0  ) irc.say( message.channel, message.username + ": Sorry, no results for '" + message.matches[1] + "'")
             else irc.say( message.channel, message.username + ": " + results[0].title + " - " + results[0].player['default'])
         })
     })
 
+    on( 'msg', /debug/, function ( message ) {
+        if ( irc.isGod( message ) ) {
+            DEBUG = !DEBUG;
+            irc.say( message.channel, ' debug mode toggled.' )
+        }
+        console.log( message )
+    });
 
     // start the bot
     irc.socket.setEncoding('ascii');
