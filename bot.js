@@ -8,9 +8,8 @@ var net = require('net'),
         , god : config['god']
         , modules : {}
     },
-    names = ['AxeMurderer', 'KZombie', 'Minotauro', 'KrazyHorse'],
+    names = ['AxeMurderer', 'KZombie', 'Minotauro', 'KrazyHorse', 'Doflmingo'],
     name = names[Math.floor(Math.random()*names.length)],
-    name = "Doflmingo",
     db = require('vendor/db/db'), 
     Youtube = require('./vendor/youtube/youtube'),
     Utils = require("./vendor/utils/utils"),
@@ -25,7 +24,7 @@ config['user']['user'] = name;
 
 (function() {
 
-    var DEBUG = false;
+    var DEBUG = false, MUTE = false;
 
     irc.socket.on('data', function(data) {
         data = data.split(/\r\n/);
@@ -155,7 +154,8 @@ config['user']['user'] = name;
     };
 
     irc.say = function( channel, text ) {
-        irc.raw('PRIVMSG ' + channel + ' :' + text );
+        if ( !MUTE )
+            irc.raw('PRIVMSG ' + channel + ' :' + text );
     }
 
     irc.op = function( message ) {
@@ -200,8 +200,6 @@ config['user']['user'] = name;
         })
 
         note.save(function(err, arr){
-            console.log(err)
-
             if ( arr ) {
                 irc.say( message.channel, 'note saved.' )
             }
@@ -212,18 +210,6 @@ config['user']['user'] = name;
       irc.modules.utils.title( message.matches[0], function(results ) {
 	  //if ( results.length ) irc.say( message.channel, '\u0002' + results )
 	  if ( results.length ) irc.say( message.channel, results )
-
-	  //message.say( results.length )
-	  //message.say ( results )
-	  for ( var i = results.length; i--; ) {
-	      var code = results[i].charCodeAt();
-	      if ( code > 255 ) {
-		  //console.log('found')
-		  //console.log( code )
-		  //console.log( results[i].charCodeAt() )
-	      }
-	  }
-
       })
     });
 
@@ -234,12 +220,18 @@ config['user']['user'] = name;
         })
     })
 
-    on( 'msg', /debug/, function ( message ) {
+    on( 'msg', /^:debug/, function ( message ) {
         if ( irc.isGod( message ) ) {
             DEBUG = !DEBUG;
             irc.say( message.channel, ' debug mode toggled.' )
         }
-        console.log( message )
+    });
+
+    on( 'msg', /^:mute/, function ( message ) {
+        if ( irc.isGod( message ) ) {
+            MUTE = !MUTE
+            irc.say( message.channel, ' mute toggled.' )
+        }
     });
 
     // start the bot
