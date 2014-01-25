@@ -24,7 +24,9 @@ config['user']['user'] = name;
 
 (function() {
 
-    var DEBUG = false, MUTE = false;
+    var 
+        DEBUG = false
+    ,   MUTE = false;
 
     irc.socket.on('data', function(data) {
         data = data.split(/\r\n/);
@@ -78,6 +80,22 @@ config['user']['user'] = name;
 
             item = irc.listeners[i];
 
+            /*
+             *
+             * restrict god and admin methods
+             *
+            **/
+
+            if ( item.access == 'god' ) {
+                if ( irc.isGod( message ) === false ) {
+                    continue;
+                }
+            } else if ( item.access == 'admin' ) {
+                if ( irc.isOp( message ) === false ) {
+                    continue;
+                }
+            }
+
             if ( message.command == item.command ) {
                 switch ( message.command ) {
 
@@ -116,26 +134,38 @@ config['user']['user'] = name;
         }
     }
 
-    function on( command, what, callback ) {
+    function on( command, what, callback, extra ) {
 
-        if ( command == 'msg' ) command = 'privmsg';
+        /* 
+         *
+         * define shortcuts for commands for less typing
+         *
+        **/
+
+        var shortcuts = {
+            'msg' : 'privmsg'
+        }
+        , once = false
+        , access = ['regular']
+
+        if ( command in shortcuts && shortcuts.hasOwnProperty( command ) ) {
+            command = shortcuts[command]
+        }
+
+        if ( extra != undefined ) {
+            if ( extra.once )
+                once = extra.once
+
+            if ( extra.access )
+                access = extra.access
+        }
 
         irc.listeners.push({
             command: command,
             what: what,
             callback: callback,
-            once: false
-        })
-    }
-
-    function on_once( command, what, callback ) {
-        if ( command == 'msg' ) command = 'privmsg';
-
-        irc.listeners.push({
-            command: command,
-            what: what,
-            callback: callback,
-            once: true
+            once: once,
+            access: access
         })
     }
 
@@ -154,7 +184,7 @@ config['user']['user'] = name;
     };
 
     irc.say = function( channel, text, override ) {
-        if ( !override || ( override && !MUTE ) )
+        if ( override == true || ( !MUTE && override == undefined ) )
             irc.raw('PRIVMSG ' + channel + ' :' + text );
     }
 
@@ -243,6 +273,7 @@ config['user']['user'] = name;
      * Attempts to identify and links, and upon validating a URI, attemps to fetch the title of the document through an HTTP request
      *
     **/
+
     on( 'msg', irc.modules.parser.linkRx, function( message ) {
       irc.modules.utils.title( message.matches[0], function(results ) {
 	  //if ( results.length ) irc.say( message.channel, '\u0002' + results )
@@ -268,11 +299,9 @@ config['user']['user'] = name;
      *
     **/
     on( 'msg', /^:debug/, function ( message ) {
-        if ( irc.isGod( message ) ) {
-            DEBUG = !DEBUG;
-            irc.say( message.channel, ' debug mode toggled.', true )
-        }
-    });
+        DEBUG = !DEBUG;
+        irc.say( message.channel, ' debug mode toggled. set to ' + ((DEBUG == true) ? 'on' : 'off'), true )
+    }, { access:['god']} );
 
     /**
      *
@@ -280,14 +309,13 @@ config['user']['user'] = name;
      *
     **/
     on( 'msg', /^:mute/, function ( message ) {
-        if ( irc.isGod( message ) ) {
-            irc.say( message.channel, ' mute toggled.', true )
-            MUTE = !MUTE
-        }
-    });
+        MUTE = !MUTE
+        irc.say( message.channel, ' mute toggled. set to ' + ((MUTE == true) ? 'on' : 'off'), true )
+    }, { access:['god']} );
 
-    // start the bot
+    // IRC is through ascii
     irc.socket.setEncoding('ascii');
+
     irc.socket.setNoDelay();
     irc.socket.connect(config.server.port, config.server.addr);
 
