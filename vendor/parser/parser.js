@@ -2,7 +2,7 @@ function Parser() {
 
     this.buildMessage = function ( line ) {
 
-        var baseMatch = '^:([_a-zA-Z]+)!([^@]+)@([^ ]+)',
+        var baseMatch = '^:([_a-zA-Z|^]+)!([^@]+)@([^ ]+)',
             regex = [
                 { 
                     type: 'join',

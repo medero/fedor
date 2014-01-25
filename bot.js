@@ -153,8 +153,8 @@ config['user']['user'] = name;
         irc.raw('JOIN ' + chan);
     };
 
-    irc.say = function( channel, text ) {
-        if ( !MUTE )
+    irc.say = function( channel, text, override ) {
+        if ( !override || ( override && !MUTE ) )
             irc.raw('PRIVMSG ' + channel + ' :' + text );
     }
 
@@ -223,14 +223,14 @@ config['user']['user'] = name;
     on( 'msg', /^:debug/, function ( message ) {
         if ( irc.isGod( message ) ) {
             DEBUG = !DEBUG;
-            irc.say( message.channel, ' debug mode toggled.' )
+            irc.say( message.channel, ' debug mode toggled.', true )
         }
     });
 
     on( 'msg', /^:mute/, function ( message ) {
         if ( irc.isGod( message ) ) {
+            irc.say( message.channel, ' mute toggled.', true )
             MUTE = !MUTE
-            irc.say( message.channel, ' mute toggled.' )
         }
     });
 
