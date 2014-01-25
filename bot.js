@@ -4,11 +4,13 @@ var net = require('net'),
           info:{}
         , listeners : []
         , socket : new net.Socket()
-        , ops : config['god'].concat( config['admins'] )
-        , god : config['god']
+        , users : {
+            op : config['god'].concat( config['admins'] ),
+            god : config['god']
+        }
         , modules : {}
     },
-    names = ['AxeMurderer', 'KZombie', 'Minotauro', 'KrazyHorse', 'Doflmingo'],
+    names = ['AxeMurderer', 'KZombie', 'Minotauro', 'Hisoka', 'Doflmingo'],
     name = names[Math.floor(Math.random()*names.length)],
     db = require('vendor/db/db'), 
     Youtube = require('./vendor/youtube/youtube'),
@@ -66,12 +68,10 @@ config['user']['user'] = name;
         }, 1000);
     });
 
-    irc.isOp = function( message ) {
-        return irc.ops.indexOf( message.handle ) !== -1 || irc.ops.indexOf( message.handle.replace(/^~/, '') ) !== -1;
-    };
-
-    irc.isGod = function( message ) {
-        return irc.god.indexOf( message.handle ) !== -1 || irc.god.indexOf( message.handle.replace(/^~/, '') ) !== -1;
+    irc.is = function( role, message ) {
+        if ( role in irc.users && irc.users.hasOwnProperty ( role ) ) {
+            return irc.users[role].indexOf( message.handle ) !== -1 || irc.users[role].indexOf( message.handle.replace(/^~/, '' ) ) !== -1
+        }
     }
 
     irc.handle = function( message ) {
@@ -86,17 +86,15 @@ config['user']['user'] = name;
              *
             **/
 
-            if ( item.access == 'god' ) {
-                if ( irc.isGod( message ) === false ) {
-                    continue;
-                }
-            } else if ( item.access == 'admin' ) {
-                if ( irc.isOp( message ) === false ) {
-                    continue;
-                }
-            }
-
             if ( message.command == item.command ) {
+
+                // TODO: fix this ugly conditional
+                if ( message.command != 'ping' ) {
+                    if ( irc.is( item.access, message ) == false ) {
+                        continue;
+                    }
+                }
+
                 switch ( message.command ) {
 
                     case 'privmsg':
@@ -201,7 +199,7 @@ config['user']['user'] = name;
      *
     **/
     on( 'join', '#alpha', function( message ) {
-        if ( irc.isOp( message ) )
+        if ( irc.is( 'op', message ) )
             irc.op ( message )
     });
 
@@ -212,7 +210,7 @@ config['user']['user'] = name;
     **/
     on( 'msg', /^\.op/, function( message ) {
 
-        if ( irc.isOp( message ) )
+        if ( irc.is( 'op', message ) )
             irc.op ( message )
     });
 
@@ -231,7 +229,8 @@ config['user']['user'] = name;
      *
     **/
     on( 'msg', /^\.topic (.+)/, function( message ) {
-        irc.raw('TOPIC ' + message.channel + ' :' + message.matches[1] );
+        if ( irc.is( 'op', message ) )
+            irc.raw('TOPIC ' + message.channel + ' :' + message.matches[1] );
     });
 
     /**
@@ -302,6 +301,10 @@ config['user']['user'] = name;
         DEBUG = !DEBUG;
         irc.say( message.channel, ' debug mode toggled. set to ' + ((DEBUG == true) ? 'on' : 'off'), true )
     }, { access:['god']} );
+
+    on('msg', /^:opcommand/, function( message ) {
+        irc.say( message.channel, 'op only' )
+    }, { access:['op']} );
 
     /**
      *
