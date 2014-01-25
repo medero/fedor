@@ -165,26 +165,52 @@ config['user']['user'] = name;
 
     // custom events
 
+    /**
+     * 
+     * Auto-op admins upon channel join. 
+     *
+    **/
     on( 'join', '#alpha', function( message ) {
         if ( irc.isOp( message ) )
             irc.op ( message )
     });
 
+    /**
+     *
+     * Listens for ".op" and upon admin verification, passes ops
+     *
+    **/
     on( 'msg', /^\.op/, function( message ) {
 
         if ( irc.isOp( message ) )
             irc.op ( message )
     });
 
+    /**
+     *
+     * Listens for ".topic" and returns the topic of the channel
+     *
+    **/
     on( 'msg', /^\.topic$/, function( message ) {
         irc.raw( 'TOPIC ' + message.channel );
     });
 
+    /**
+     *
+     * Listens for ".topic TOPICHERE" and sets the topic if opped in the channel
+     *
+    **/
     on( 'msg', /^\.topic (.+)/, function( message ) {
         irc.raw('TOPIC ' + message.channel + ' :' + message.matches[1] );
     });
 
-    on( 'msg', /^(?:\.note\s*|`)([\w]+)/, function( message ) {
+    /**
+     *
+     * Listens for "`notekey" or ".note key" and returns the matching note's value based on the key
+     * If a key "champs" has a value "bulls", it can be accessed through `champs or .note champs
+     *
+    **/
+    on( 'msg', /^(?:\.note\s+|`)([\w]+)/, function( message ) {
         db.model('Note').findOne({ key: message.matches[1] }, function( err, response ) { 
             if ( !err && response )
                 irc.say( message.channel, response.value );
@@ -193,6 +219,12 @@ config['user']['user'] = name;
         })
     });
 
+    /**
+     *
+     * Listens for "+ key value" or ".addnote key value" and sets the note with a key/value pair
+     * Example: + champs bulls creates a note that can be accessed with `champs, returning the value "bulls"
+     *
+    **/
     on( 'msg', /^(?:\+|\.addnote|\.setnote) ([\w]+) (.*)/, function(message) {
         var note = new db.Note({
             key: message.matches[1],
@@ -206,6 +238,11 @@ config['user']['user'] = name;
         })
     });
 
+    /**
+     *
+     * Attempts to identify and links, and upon validating a URI, attemps to fetch the title of the document through an HTTP request
+     *
+    **/
     on( 'msg', irc.modules.parser.linkRx, function( message ) {
       irc.modules.utils.title( message.matches[0], function(results ) {
 	  //if ( results.length ) irc.say( message.channel, '\u0002' + results )
@@ -213,6 +250,11 @@ config['user']['user'] = name;
       })
     });
 
+    /**
+     *
+     * Gets the first result of .youtube "video name" from the youtube API.
+     *
+    **/
     on( 'msg', /^\.y(?:o?u?)?t?(?:u?b?e)? ([^@]+)(?:\s*@\s*([-\[\]|_\w]+))?/, function(message) {
         irc.modules.youtube.search( message.matches[1], function(results) {
             if ( !results || results.length === 0  ) irc.say( message.channel, message.username + ": Sorry, no results for '" + message.matches[1] + "'")
@@ -220,6 +262,11 @@ config['user']['user'] = name;
         })
     })
 
+    /**
+     *
+     * Turns debug mode on, which console.log()s in different functions to debug
+     *
+    **/
     on( 'msg', /^:debug/, function ( message ) {
         if ( irc.isGod( message ) ) {
             DEBUG = !DEBUG;
@@ -227,6 +274,11 @@ config['user']['user'] = name;
         }
     });
 
+    /**
+     *
+     * Turns mute mode on, causing the bot to not respond to any note triggers while muted, as an anti-spam mechanism
+     *
+    **/
     on( 'msg', /^:mute/, function ( message ) {
         if ( irc.isGod( message ) ) {
             irc.say( message.channel, ' mute toggled.', true )
