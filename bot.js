@@ -81,6 +81,16 @@ config['user']['user'] = name;
             item = irc.listeners[i];
 
             /*
+               irc.listeners.push({
+                   command: command,
+                   what: what,
+                   callback: callback,
+                   once: false
+               })
+           */
+
+
+            /*
              *
              * restrict god and admin methods
              *
@@ -120,15 +130,6 @@ config['user']['user'] = name;
                 }
             }
             
-            /*
-        irc.listeners.push({
-            command: command,
-            what: what,
-            callback: callback,
-            once: false
-        })
-        */
-
         }
     }
 
