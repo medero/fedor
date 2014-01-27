@@ -2,13 +2,18 @@ function Parser() {
 
     this.buildMessage = function ( line ) {
 
-        var baseMatch = '^:([_a-zA-Z|^]+)!([^@]+)@([^ ]+)',
+        var 
+              nick = '[_a-zA-Z0-9|^]+'
+            , user = '[^@]+'
+            , host = '[^ ]+'
+            , baseMatch = '^:(' + nick + ')!(' + user + ')@(' + host + ')',
+
             regex = [
                 { 
                     type: 'join',
                     pattern: baseMatch + ' JOIN :#([a-z]+)' 
                 },
-                { 
+                {
                     type: 'part',
                     pattern: baseMatch + ' PART #([a-z]+)' 
                 },
