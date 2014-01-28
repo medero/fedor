@@ -1,0 +1,3 @@
+- Make custom event handlers invokable from within
+- Log all links
+- Create function to reverse search links using an expression
