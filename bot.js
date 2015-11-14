@@ -10,7 +10,8 @@ var net = require('net'),
         }
         , modules : {}
     },
-    names = ['AxeMurderer', 'KZombie', 'Minotauro', 'Hisoka', 'Doflmingo'],
+    //names = [ 'GolDRoger', 'Hisoka', 'Doflmingo'],
+    names = [ 'GGG' ],
     name = names[Math.floor(Math.random()*names.length)],
     db = require('vendor/db/db'), 
     Youtube = require('./vendor/youtube/youtube'),
@@ -22,7 +23,7 @@ irc.modules.utils = new Utils;
 irc.modules.parser = new Parser;
 
 config['user']['nick'] = name;
-config['user']['user'] = name;
+//config['user']['user'] = name;
 
 (function() {
 
@@ -49,6 +50,27 @@ config['user']['user'] = name;
                 //irc.handle(data[i].slice(0, -1));
             }
         }
+    });
+
+    // TODO: http://stackoverflow.com/questions/17245881/node-js-econnreset
+    irc.socket.on('timeout', function() {
+        console.log('timeout');
+    });
+
+    irc.socket.on('error', function(e) {
+        console.log('error');
+        console.log(e)
+
+        setTimeout(function() {
+            irc.socket.connect(config.server.port, config.server.addr);
+        }, 5000 );
+    });
+
+    irc.socket.on('end', function() {
+        console.log('end??')
+        setTimeout(function() {
+            //irc.socket.connect(config.server.port, config.server.addr);
+        }, 1000 );
     });
 
     irc.socket.on('connect', function() {
@@ -169,7 +191,12 @@ config['user']['user'] = name;
     }
 
     irc.raw = function(data) {
+        /*
         irc.socket.write(data + '\r\n', 'ascii', function() {
+            console.log('SENT -', data);
+        });
+        */
+        irc.socket.write(data + '\r\n', 'utf8', function() {
             console.log('SENT -', data);
         });
     }
@@ -213,6 +240,14 @@ config['user']['user'] = name;
 
         if ( irc.is( 'op', message ) )
             irc.op ( message )
+    });
+
+    var lol = true;
+
+    on( 'msg', /lol/i, function( message ) {
+        lol = !lol
+        if ( message.channel == 'alpha' && lol )
+            irc.say( message.channel, 'never fucking say lol again. - gutts 03.3.2014' )
     });
 
     /**
@@ -318,7 +353,8 @@ config['user']['user'] = name;
     }, { access:['god']} );
 
     // IRC is through ascii
-    irc.socket.setEncoding('ascii');
+    //irc.socket.setEncoding('ascii');
+    irc.socket.setEncoding('utf8');
 
     irc.socket.setNoDelay();
     irc.socket.connect(config.server.port, config.server.addr);
