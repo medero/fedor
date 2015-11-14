@@ -242,14 +242,6 @@ config['user']['nick'] = name;
             irc.op ( message )
     });
 
-    var lol = true;
-
-    on( 'msg', /lol/i, function( message ) {
-        lol = !lol
-        if ( message.channel == 'alpha' && lol )
-            irc.say( message.channel, 'never fucking say lol again. - gutts 03.3.2014' )
-    });
-
     /**
      *
      * Listens for ".topic" and returns the topic of the channel
